@@ -21,6 +21,10 @@ function my_plugin_enqueue_admin_scripts() {
        max-width: 100px; /* Adjust the maximum width as per your requirements */
        height: auto; /* Maintain the aspect ratio */
    }
+   .custom-image-icon {
+    max-width: 100px; /* Adjust the maximum width as per your requirements */
+    height: 20px; /* Maintain the aspect ratio */
+}
    .custom-image-text {
     max-width: 150px; /* Adjust the maximum width as per your requirements */
     height: auto; /* Maintain the aspect ratio */
@@ -35,6 +39,31 @@ function my_plugin_enqueue_admin_scripts() {
    .full-width-input {
         width: 100%;
         box-sizing: border-box;
+    }
+
+    .review-entry-row {
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .review-entry-box {
+        width: 32%; /* You can adjust as per your need */
+        border: 1px solid #ccc;
+        padding: 5px;
+        box-sizing: border-box;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .review-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    a.custom-link {
+        color: inherit;      /* Make the link color the same as surrounding text */
+        text-decoration: none;   /* Removes the underline */
     }
    ';
 
@@ -75,8 +104,8 @@ function my_plugin_custom_admin_box() {
             echo '<div style="background-color: #ffcccc; color: #ff0000; padding: 10px; margin-bottom: 10px;">' . $error_message . '</div>';
             echo $add_api_key;
         } else {
-            $error_message = 'API Connection Success';
-            echo '<div style="background-color: #c3e6cb; color: #155724; padding: 10px; margin-bottom: 10px;">' . $error_message . '</div>';
+            $success_message = 'API Connection Success';
+            echo '<div id="success_message" style="background-color: #c3e6cb; color: #155724; padding: 10px; margin-bottom: 10px;">' . $success_message . '</div>';
             connection_success($access_token);
         }
     } else {
@@ -103,10 +132,55 @@ function connection_success($access_token){
     $result_request = curl_exec($request);
     curl_close($request);
     $result_request = json_decode($result_request, true);
-    echo nl2br(print_r($result_request, true));
+    //echo nl2br(print_r($result_request, true));
     if ($result_request && sizeof($result_request) > 0){
-        echo $result_request;
-        echo nl2br(print_r($result_request, true));
+       // echo $result_request;
+        //echo nl2br(print_r($result_request, true));
+        /*if (in_array('google_review', $result_request['activated_products'])){
+            echo '<div style="margin-bottom: 20px"><h3><b>'.$text['title'].'</b>';
+        }*/
+        if ($result_request['products'] && sizeof($result_request['products']) > 0){
+            foreach($result_request['products'] as $key => $value){
+                if(isset($value['link']) && !empty($value['link'])) {
+                    echo '<a class="custom-link" href="'.$value['link'].'">';
+                }
+                echo '<div style="margin-bottom: 10px; display: flex; align-items: center;"><img src="https://www.reqser.com/storage/images/google_review.svg" alt="Icon" class="custom-image-icon" style="margin-right: 10px;"><h3 style="margin: 0; line-height: 1;"><b>'.$value['title'].'</b></h3></div>';
+                if ($key == 'google_review'){
+                    if (isset($value['reviews']) && sizeof($value['reviews']) > 0){
+                        foreach($value['reviews'] as $review_name => $review){
+                            echo '<div style="margin-bottom: 10px; display: flex; align-items: center;"><h3 style="margin: 0; line-height: 1;"><b>'.$review_name.'</b> '.$review['rating'].'</h3></div>';
+                            if (isset($review['latest_entries']) && sizeof($review['latest_entries']) > 0) {
+                                echo '<div class="review-entry-row">';
+                                foreach($review['latest_entries'] as $latest_entries){
+                                    echo '<div class="review-entry-box">';
+                                        echo '<div class="review-entry">';
+                                        $rating = $latest_entries['review_rating'];
+                                        for ($i = 0; $i < $rating; $i++) {
+                                            echo '<span class="fas fa-star"></span>';
+                                        }
+                                        for ($i = $rating; $i < 5; $i++) {
+                                            echo '<span class="far fa-star"></span>';
+                                        }
+                                        echo date("d.m.Y", strtotime($latest_entries['created_at']));
+                                        echo '</div>';
+                                        
+                                        echo '<div class="review-entry"><b>' . $latest_entries['name'] . '</b></div>';
+                                        echo '<div class="review-entry review-text">' . $latest_entries['text'] . '</div>';
+                                        
+                                    echo '</div>';
+                                }
+                                echo '</div>';
+                            }
+                        }
+                    }
+                }
+                if(isset($value['link']) && !empty($value['link'])) {
+                    echo '</a>';
+                }
+
+            }
+        }
+        
         /*foreach($result_request as $key => $value){
             if ($key == 'login_link'){
                 echo '<div><a href="'.$value.'&user='.$user_id.'" target="_blank" class="button button-primary" style="color: white;">Direkt zu Reqser.com</a></div>';
@@ -207,4 +281,21 @@ function my_plugin_add_custom_admin_box() {
 }
 add_action( 'wp_dashboard_setup', 'my_plugin_add_custom_admin_box' );
 
+function load_font_awesome() {
+    wp_enqueue_style( 'font-awesome', 'https://use.fontawesome.com/releases/v5.15.3/css/all.css', array(), '5.15.3' );
+}
+add_action( 'admin_enqueue_scripts', 'load_font_awesome' );
+
 ?>
+
+<script>
+    // Use setTimeout function to execute the code after 10 seconds
+    setTimeout(function() {
+        // Get the element by id
+        var msg = document.getElementById('success_message');
+        // Set the display property to none to hide the message
+        if(msg) {
+            msg.style.display = 'none';
+        }
+    }, 5000); // Time is in milliseconds (10000 ms = 10 s)
+</script>
